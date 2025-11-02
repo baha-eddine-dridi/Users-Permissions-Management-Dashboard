@@ -38,8 +38,8 @@ const RegisterPage: React.FC = () => {
         lastName: data.lastName,
       });
       
-      setSuccess('Compte créé avec succès ! Vérifiez votre email pour activer votre compte.');
-      setTimeout(() => navigate('/login'), 3000);
+      setSuccess('Compte créé avec succès ! Redirection vers la vérification...');
+      setTimeout(() => navigate(`/verify-email?email=${encodeURIComponent(data.email)}`), 1500);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la création du compte');
     } finally {
@@ -145,8 +145,8 @@ const RegisterPage: React.FC = () => {
                     message: 'Le mot de passe doit contenir au moins 8 caractères',
                   },
                   pattern: {
-                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                    message: 'Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre',
+                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+                    message: 'Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial (@$!%*?&)',
                   },
                 })}
                 type="password"
@@ -156,6 +156,9 @@ const RegisterPage: React.FC = () => {
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500">
+                Doit contenir 8+ caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (@$!%*?&)
+              </p>
             </div>
 
             <div>

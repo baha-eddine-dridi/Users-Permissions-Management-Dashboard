@@ -17,6 +17,7 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
 } from '../schemas/auth.schemas';
 
 const router = Router();
@@ -51,7 +52,7 @@ router.post('/reset-password', authLimiter, validate(resetPasswordSchema), reset
 // Routes sans rate limiting strict
 router.post('/logout', generalLimiter, logout);
 router.post('/refresh-token', generalLimiter, refreshToken);
-router.get('/verify-email/:token', generalLimiter, verifyEmail);
+router.post('/verify-email', generalLimiter, validate(verifyEmailSchema), verifyEmail);
 
 // Routes protégées
 router.get('/profile', generalLimiter, authenticateToken, getProfile);

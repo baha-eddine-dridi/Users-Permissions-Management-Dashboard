@@ -10,7 +10,10 @@ export interface IUser extends Document {
   isActive: boolean;
   emailVerified: boolean;
   emailVerificationToken?: string;
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
   passwordResetToken?: string;
+  passwordResetCode?: string;
   passwordResetExpires?: Date;
   lastLogin?: Date;
   loginAttempts: number;
@@ -69,7 +72,16 @@ const userSchema = new Schema<IUser>(
     emailVerificationToken: {
       type: String,
     },
+    emailVerificationCode: {
+      type: String,
+    },
+    emailVerificationExpires: {
+      type: Date,
+    },
     passwordResetToken: {
+      type: String,
+    },
+    passwordResetCode: {
       type: String,
     },
     passwordResetExpires: {

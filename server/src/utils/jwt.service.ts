@@ -91,6 +91,13 @@ export class JWTService {
   }
 
   /**
+   * Génère un code de vérification à 6 chiffres
+   */
+  static generateVerificationCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  /**
    * Génère les deux tokens (access + refresh)
    */
   static generateTokenPair(userId: string, email: string) {

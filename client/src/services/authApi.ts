@@ -60,8 +60,13 @@ export const authApi = {
     return response.data;
   },
 
-  async resetPassword(token: string, password: string): Promise<any> {
-    const response = await apiClient.post('/auth/reset-password', { token, password });
+  async resetPassword(code: string, password: string): Promise<any> {
+    const response = await apiClient.post('/auth/reset-password', { code, password });
+    return response.data;
+  },
+
+  async verifyEmail(code: string): Promise<any> {
+    const response = await apiClient.post('/auth/verify-email', { code });
     return response.data;
   },
 };

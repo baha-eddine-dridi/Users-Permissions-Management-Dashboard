@@ -3,7 +3,6 @@ import { User } from '../models/User';
 import { Role } from '../models/Role';
 import { JWTService } from '../utils/jwt.service';
 import { EmailService } from '../utils/email.service';
-import { isDevelopment } from '../config/env';
 import {
   RegisterInput,
   LoginInput,
@@ -38,8 +37,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Générer un token de vérification d'email
-    const emailVerificationToken = JWTService.generateSecureToken();
+    // Générer un code de vérification à 6 chiffres
+    const emailVerificationCode = JWTService.generateVerificationCode();
+    const emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Créer le nouvel utilisateur
     const user = new User({
@@ -48,24 +48,18 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       firstName,
       lastName,
       roles: [defaultRole._id],
-      emailVerificationToken,
+      emailVerificationCode,
+      emailVerificationExpires,
     });
 
     await user.save();
 
-    // Envoyer l'email de vérification (stub en développement)
+    // Envoyer l'email de vérification
     try {
-      if (isDevelopment()) {
-        await EmailService.sendEmailStub({
-          to: email,
-          subject: 'Vérifiez votre adresse email',
-          text: `Token de vérification: ${emailVerificationToken}`,
-        });
-      } else {
-        await EmailService.sendVerificationEmail(email, emailVerificationToken, firstName);
-      }
+      await EmailService.sendVerificationEmail(email, emailVerificationCode, firstName);
+      console.log(`✅ Email de vérification envoyé à: ${email} - Code: ${emailVerificationCode}`);
     } catch (emailError) {
-      console.error('Erreur envoi email:', emailError);
+      console.error('❌ Erreur envoi email:', emailError);
       // On continue même si l'email échoue
     }
 
@@ -311,27 +305,20 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Générer un token de réinitialisation
-    const resetToken = JWTService.generateSecureToken();
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+    // Générer un code de réinitialisation à 6 chiffres
+    const resetCode = JWTService.generateVerificationCode();
+    const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    user.passwordResetToken = resetToken;
+    user.passwordResetCode = resetCode;
     user.passwordResetExpires = resetExpires;
     await user.save();
 
     // Envoyer l'email de réinitialisation
     try {
-      if (process.env.NODE_ENV === 'development') {
-        await EmailService.sendEmailStub({
-          to: email,
-          subject: 'Réinitialisation de mot de passe',
-          text: `Token de réinitialisation: ${resetToken}`,
-        });
-      } else {
-        await EmailService.sendPasswordResetEmail(email, resetToken, user.firstName);
-      }
+      await EmailService.sendPasswordResetEmail(email, resetCode, user.firstName);
+      console.log(`✅ Email de réinitialisation envoyé à: ${email} - Code: ${resetCode}`);
     } catch (emailError) {
-      console.error('Erreur envoi email:', emailError);
+      console.error('❌ Erreur envoi email:', emailError);
     }
 
     res.status(200).json({
@@ -352,24 +339,24 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
  */
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { token, password }: ResetPasswordInput = req.body;
+    const { code, password } = req.body;
 
     const user = await User.findOne({
-      passwordResetToken: token,
+      passwordResetCode: code,
       passwordResetExpires: { $gt: new Date() },
     });
 
     if (!user) {
       res.status(400).json({
         success: false,
-        message: 'Token de réinitialisation invalide ou expiré',
+        message: 'Code de réinitialisation invalide ou expiré',
       });
       return;
     }
 
     // Mettre à jour le mot de passe
     user.password = password;
-    user.passwordResetToken = undefined;
+    user.passwordResetCode = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
 
@@ -387,28 +374,37 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 };
 
 /**
- * Contrôleur pour vérifier l'email
+ * Contrôleur pour vérifier l'email avec un code à 6 chiffres
  */
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { token } = req.params;
+    const { code } = req.body;
 
-    const user = await User.findOne({ emailVerificationToken: token });
+    const user = await User.findOne({
+      emailVerificationCode: code,
+      emailVerificationExpires: { $gt: new Date() },
+    });
+
     if (!user) {
       res.status(400).json({
         success: false,
-        message: 'Token de vérification invalide',
+        message: 'Code de vérification invalide ou expiré',
       });
       return;
     }
 
     user.emailVerified = true;
-    user.emailVerificationToken = undefined;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationExpires = undefined;
     await user.save();
 
     res.status(200).json({
       success: true,
       message: 'Email vérifié avec succès',
+      data: {
+        email: user.email,
+        emailVerified: user.emailVerified,
+      },
     });
   } catch (error) {
     console.error('Erreur lors de la vérification d\'email:', error);

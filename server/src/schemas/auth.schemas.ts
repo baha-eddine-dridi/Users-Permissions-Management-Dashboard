@@ -44,7 +44,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Token requis'),
+  code: z.string().length(6, 'Le code doit contenir exactement 6 chiffres'),
   password: z
     .string()
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
@@ -53,6 +53,10 @@ export const resetPasswordSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
       'Le mot de passe doit contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial'
     ),
+});
+
+export const verifyEmailSchema = z.object({
+  code: z.string().length(6, 'Le code doit contenir exactement 6 chiffres'),
 });
 
 export const changePasswordSchema = z.object({
@@ -73,3 +77,4 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
