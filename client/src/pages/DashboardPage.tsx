@@ -1,8 +1,89 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { userApi } from '../services/userApi';
+import { roleApi } from '../services/roleApi';
+import { permissionsApi } from '../services/permissionsApi';
+
+interface Stats {
+  users: number;
+  roles: number;
+  permissions: number;
+  loading: boolean;
+}
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
+  const navigate = useNavigate();
+  
+  const [stats, setStats] = useState<Stats>({
+    users: 0,
+    roles: 0,
+    permissions: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Vérifier les permissions avant de faire les appels
+        const promises: Promise<any>[] = [];
+        
+        // Toujours charger les utilisateurs si permission user.read
+        if (hasPermission('user.read')) {
+          promises.push(
+            userApi.getUsers(1, 1)
+              .then(res => ({ type: 'users', data: res }))
+              .catch(() => ({ type: 'users', data: { data: { pagination: { total: 0 } } } }))
+          );
+        }
+        
+        // Charger les rôles si permission role.read
+        if (hasPermission('role.read')) {
+          promises.push(
+            roleApi.getRoles(1, 1)
+              .then(res => ({ type: 'roles', data: res }))
+              .catch(() => ({ type: 'roles', data: { data: { pagination: { total: 0 } } } }))
+          );
+        }
+        
+        // Charger les permissions si permission permission.read
+        if (hasPermission('permission.read')) {
+          promises.push(
+            permissionsApi.getPermissions()
+              .then(res => ({ type: 'permissions', data: res }))
+              .catch(() => ({ type: 'permissions', data: { data: { permissions: [] } } }))
+          );
+        }
+
+        const results = await Promise.all(promises);
+        
+        const newStats = {
+          users: 0,
+          roles: 0,
+          permissions: 0,
+          loading: false,
+        };
+
+        results.forEach((result: any) => {
+          if (result.type === 'users') {
+            newStats.users = result.data?.data?.pagination?.total || 0;
+          } else if (result.type === 'roles') {
+            newStats.roles = result.data?.data?.pagination?.total || 0;
+          } else if (result.type === 'permissions') {
+            newStats.permissions = result.data?.data?.permissions?.length || 0;
+          }
+        });
+
+        setStats(newStats);
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+        setStats((prev) => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchStats();
+  }, [hasPermission]);
 
   return (
     <div className="p-6">
@@ -33,7 +114,7 @@ const DashboardPage: React.FC = () => {
                     Utilisateurs
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    --
+                    {stats.loading ? '...' : hasPermission('user.read') ? stats.users : '--'}
                   </dd>
                 </dl>
               </div>
@@ -58,7 +139,7 @@ const DashboardPage: React.FC = () => {
                     Rôles
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    --
+                    {stats.loading ? '...' : hasPermission('role.read') ? stats.roles : '--'}
                   </dd>
                 </dl>
               </div>
@@ -83,7 +164,7 @@ const DashboardPage: React.FC = () => {
                     Permissions
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    --
+                    {stats.loading ? '...' : hasPermission('permission.read') ? stats.permissions : '--'}
                   </dd>
                 </dl>
               </div>
@@ -96,22 +177,38 @@ const DashboardPage: React.FC = () => {
       <div className="mt-8">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Actions rapides</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left">
-            <div className="text-sm font-medium text-gray-900">Nouvel utilisateur</div>
-            <div className="text-sm text-gray-500">Créer un nouveau compte utilisateur</div>
-          </button>
+          {hasPermission('user.create') && (
+            <button
+              onClick={() => navigate('/users')}
+              className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left transition-colors"
+            >
+              <div className="text-sm font-medium text-gray-900">Nouvel utilisateur</div>
+              <div className="text-sm text-gray-500">Créer un nouveau compte utilisateur</div>
+            </button>
+          )}
           
-          <button className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left">
-            <div className="text-sm font-medium text-gray-900">Nouveau rôle</div>
-            <div className="text-sm text-gray-500">Définir un nouveau rôle</div>
-          </button>
+          {hasPermission('role.create') && (
+            <button
+              onClick={() => navigate('/roles')}
+              className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left transition-colors"
+            >
+              <div className="text-sm font-medium text-gray-900">Nouveau rôle</div>
+              <div className="text-sm text-gray-500">Définir un nouveau rôle</div>
+            </button>
+          )}
           
-          <button className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left">
+          <button
+            onClick={() => navigate('/users')}
+            className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left transition-colors"
+          >
             <div className="text-sm font-medium text-gray-900">Voir les logs</div>
             <div className="text-sm text-gray-500">Consulter l'activité système</div>
           </button>
           
-          <button className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left">
+          <button
+            onClick={() => navigate('/users')}
+            className="bg-white border border-gray-300 rounded-lg p-4 hover:bg-gray-50 text-left transition-colors"
+          >
             <div className="text-sm font-medium text-gray-900">Paramètres</div>
             <div className="text-sm text-gray-500">Configurer l'application</div>
           </button>

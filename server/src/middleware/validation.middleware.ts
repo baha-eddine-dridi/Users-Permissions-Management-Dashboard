@@ -37,15 +37,14 @@ export const validate = (schema: ZodSchema) => {
 export const validateQuery = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Valider les paramètres de query
-      req.query = schema.parse(req.query);
-      next();
-    } catch (error) {
-      if (error instanceof ZodError) {
+      // Utiliser safeParse pour gérer les valeurs par défaut correctement
+      const result = schema.safeParse(req.query);
+      
+      if (!result.success) {
         res.status(400).json({
           success: false,
           message: 'Paramètres de requête invalides',
-          errors: error.errors.map(err => ({
+          errors: result.error.errors.map(err => ({
             field: err.path.join('.'),
             message: err.message,
           })),
@@ -53,6 +52,10 @@ export const validateQuery = (schema: ZodSchema) => {
         return;
       }
       
+      // Assigner les valeurs validées et avec les defaults appliqués
+      req.query = result.data as any;
+      next();
+    } catch (error) {
       res.status(500).json({
         success: false,
         message: 'Erreur de validation interne',

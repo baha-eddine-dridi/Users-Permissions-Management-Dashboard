@@ -1,0 +1,915 @@
+{
+  "info": {
+    "name": "Users Permissions Management API",
+    "description": "Collection Postman complète pour l'API de gestion des utilisateurs et permissions",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Créer un nouveau compte utilisateur. Envoie un email avec un code de vérification à 6 chiffres."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            },
+            "description": "Vérifier l'email avec le code à 6 chiffres reçu par email"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Sauvegarder le token d'accès",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "        console.log('Token sauvegardé:', jsonData.data.accessToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Se connecter avec email et mot de passe. Retourne un access token et un refresh token (dans les cookies)."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Demander un code de réinitialisation de mot de passe. Envoie un email avec un code à 6 chiffres."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\",\n  \"password\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Réinitialiser le mot de passe avec le code à 6 chiffres"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Obtenir un nouveau access token en utilisant le refresh token (cookie)"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Se déconnecter et supprimer les cookies"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Obtenir les informations de l'utilisateur connecté"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Numéro de page"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Nombre d'items par page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Recherche par prénom, nom ou email",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filtrer par statut actif/inactif",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "description": "Champ de tri: firstName, lastName, email, createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc",
+                  "description": "Ordre de tri: asc, desc"
+                }
+              ]
+            },
+            "description": "Récupérer la liste des utilisateurs avec pagination, recherche et tri. Nécessite la permission 'user.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "USER_ID_HERE"
+                }
+              ]
+            },
+            "description": "Récupérer un utilisateur par son ID. Nécessite 'user.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"User\",\n  \"roles\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Créer un nouvel utilisateur. Nécessite 'user.create'."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "USER_ID_HERE"
+                }
+              ]
+            },
+            "description": "Mettre à jour un utilisateur. Nécessite 'user.update'."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "USER_ID_HERE"
+                }
+              ]
+            },
+            "description": "Supprimer un utilisateur. Nécessite 'user.delete'. Impossible de se supprimer soi-même."
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle User Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id/toggle-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id", "toggle-status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "USER_ID_HERE"
+                }
+              ]
+            },
+            "description": "Activer/Désactiver un utilisateur. Nécessite 'user.update'."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Roles to User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roleIds\": [\"ROLE_ID_1\", \"ROLE_ID_2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/:id/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", ":id", "roles"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "USER_ID_HERE"
+                }
+              ]
+            },
+            "description": "Assigner des rôles à un utilisateur. Nécessite 'user.update'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Récupérer la liste des rôles. Nécessite 'role.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ROLE_ID_HERE"
+                }
+              ]
+            },
+            "description": "Récupérer un rôle par son ID. Nécessite 'role.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Editor\",\n  \"description\": \"Peut éditer le contenu\",\n  \"permissions\": [\"user.read\", \"user.update\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles"]
+            },
+            "description": "Créer un nouveau rôle. Permissions peut être un tableau d'IDs ou de noms. Nécessite 'role.create'."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Role\",\n  \"description\": \"Description mise à jour\",\n  \"permissions\": [\"user.read\", \"role.read\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ROLE_ID_HERE"
+                }
+              ]
+            },
+            "description": "Mettre à jour un rôle. Nécessite 'role.update'."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ROLE_ID_HERE"
+                }
+              ]
+            },
+            "description": "Supprimer un rôle. Nécessite 'role.delete'."
+          },
+          "response": []
+        },
+        {
+          "name": "Attach Permissions (Deprecated)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [\"PERMISSION_ID_1\", \"PERMISSION_ID_2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/:id/attach-permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", ":id", "attach-permissions"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "ROLE_ID_HERE"
+                }
+              ]
+            },
+            "description": "Ancienne méthode pour attacher des permissions. Utilisez plutôt PUT /roles/:id"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions?page=1&limit=20&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "permissions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "resource",
+                  "value": "user",
+                  "description": "Filtrer par ressource",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "read",
+                  "description": "Filtrer par action",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Récupérer la liste des permissions. Nécessite 'permission.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permission by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "PERMISSION_ID_HERE"
+                }
+              ]
+            },
+            "description": "Récupérer une permission par son ID. Nécessite 'permission.read'."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Permission",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"product.create\",\n  \"resource\": \"product\",\n  \"action\": \"create\",\n  \"description\": \"Créer des produits\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "permissions"]
+            },
+            "description": "Créer une nouvelle permission. Nécessite 'permission.create'."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Permission",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Description mise à jour\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "PERMISSION_ID_HERE"
+                }
+              ]
+            },
+            "description": "Mettre à jour une permission. Nécessite 'permission.update'."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/roles/permissions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["roles", "permissions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "PERMISSION_ID_HERE"
+                }
+              ]
+            },
+            "description": "Supprimer une permission. Nécessite 'permission.delete'."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

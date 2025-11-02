@@ -42,37 +42,37 @@ interface UpdatePermissionData {
 export const permissionsApi = {
   // Récupérer toutes les permissions
   getPermissions: async () => {
-    const response = await apiClient.get('/permissions');
+    const response = await apiClient.get('/roles/permissions');
     return response.data;
   },
 
   // Récupérer une permission par ID
   getPermission: async (id: string) => {
-    const response = await apiClient.get(`/permissions/${id}`);
+    const response = await apiClient.get(`/roles/permissions/${id}`);
     return response.data;
   },
 
   // Créer une nouvelle permission
   createPermission: async (permissionData: CreatePermissionData) => {
-    const response = await apiClient.post('/permissions', permissionData);
+    const response = await apiClient.post('/roles/permissions', permissionData);
     return response.data;
   },
 
   // Mettre à jour une permission
   updatePermission: async (id: string, permissionData: UpdatePermissionData) => {
-    const response = await apiClient.put(`/permissions/${id}`, permissionData);
+    const response = await apiClient.put(`/roles/permissions/${id}`, permissionData);
     return response.data;
   },
 
   // Supprimer une permission
   deletePermission: async (id: string) => {
-    const response = await apiClient.delete(`/permissions/${id}`);
+    const response = await apiClient.delete(`/roles/permissions/${id}`);
     return response.data;
   },
 
   // Activer/désactiver une permission
   togglePermissionStatus: async (id: string) => {
-    const response = await apiClient.patch(`/permissions/${id}/toggle-status`);
+    const response = await apiClient.patch(`/roles/permissions/${id}/toggle-status`);
     return response.data;
   },
 };
