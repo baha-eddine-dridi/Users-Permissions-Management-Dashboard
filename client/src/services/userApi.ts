@@ -44,11 +44,23 @@ export interface UserResponse {
 }
 
 export const userApi = {
-  // Récupérer tous les utilisateurs avec pagination
-  getUsers: async (page = 1, limit = 10, search = ''): Promise<UsersResponse> => {
-    console.log('🔄 API: Récupération des utilisateurs...', { page, limit, search });
+  // Récupérer tous les utilisateurs avec pagination, recherche et tri
+  getUsers: async (
+    page = 1, 
+    limit = 10, 
+    search = '',
+    sortBy: 'createdAt' | 'firstName' | 'email' = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc'
+  ): Promise<UsersResponse> => {
+    console.log('🔄 API: Récupération des utilisateurs...', { page, limit, search, sortBy, sortOrder });
     const response = await api.get('/users', {
-      params: { page, limit, search }
+      params: { 
+        page, 
+        limit, 
+        search,
+        sortBy,
+        sortOrder
+      }
     });
     console.log('✅ API: Utilisateurs récupérés', response.data);
     return response.data;

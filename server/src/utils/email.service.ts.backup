@@ -1,0 +1,278 @@
+import nodemailer from 'nodemailer';
+import { config, isDevelopment } from '../config/env';
+
+export interface EmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+export class EmailService {
+  private static transporter: nodemailer.Transporter;
+
+  /**
+   * Initialise le service d'email
+   */
+  static initialize() {
+    this.transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: false,
+      auth: {
+        user: config.smtpUser,
+        pass: config.smtpPass,
+      },
+    });
+  }
+
+  /**
+   * Envoie un email
+   */
+  static async sendEmail(options: EmailOptions): Promise<void> {
+    try {
+      if (!this.transporter) {
+        this.initialize();
+      }
+
+      await this.transporter.sendMail({
+        from: config.emailFrom,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      });
+
+      console.log(`Email envoyé à ${options.to}: ${options.subject}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'email:', error);
+      throw new Error('Impossible d\'envoyer l\'email');
+    }
+  }
+
+  /**
+   * Envoie un email de vérification
+   */
+  static async sendVerificationEmail(
+    email: string,
+    token: string,
+    firstName: string
+  ): Promise<void> {
+    const verificationUrl = `${config.frontendUrl}/verify-email?token=${token}`;
+
+    const html = `
+      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">Vérifiez votre adresse email</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Merci de vous être inscrit ! Veuillez cliquer sur le lien ci-dessous pour vérifier votre adresse email :</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${verificationUrl}" 
+             style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Vérifier mon email
+          </a>
+        </div>
+        <p>Ce lien expire dans 24 heures.</p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject: 'Vérifiez votre adresse email',
+      html,
+      text: `Bonjour ${firstName}, merci de vous être inscrit ! Veuillez vérifier votre email en visitant : ${verificationUrl}`,
+    });
+  }
+
+  /**
+   * Envoie un email de réinitialisation de mot de passe
+   */
+  static async sendPasswordResetEmail(
+    email: string,
+    token: string,
+    firstName: string
+  ): Promise<void> {
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
+
+    const html = `
+      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">Réinitialisation de votre mot de passe</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Vous avez demandé une réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous :</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${resetUrl}" 
+             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Réinitialiser mon mot de passe
+          </a>
+        </div>
+        <p>Ce lien expire dans 1 heure.</p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject: 'Réinitialisation de votre mot de passe',
+      html,
+      text: `Bonjour ${firstName}, vous avez demandé une réinitialisation de mot de passe. Visitez : ${resetUrl}`,
+    });
+  }
+
+  /**
+   * Méthode de développement pour simuler l'envoi d'emails
+   */
+  static async sendEmailStub(options: Pick<EmailOptions, 'to' | 'subject' | 'text'>): Promise<void> {
+    if (isDevelopment()) {
+      console.log('=== EMAIL STUB (Development) ===');
+      console.log(`To: ${options.to}`);
+      console.log(`Subject: ${options.subject}`);
+      console.log(`Content: ${options.text}`);
+      console.log('==============================');
+    } else {
+      console.log(`Email stub: ${options.subject} to ${options.to}`);
+    }
+  }
+}mailer from 'nodemailer';
+import { config, isDevelopment } from '../config/env';
+
+export interface EmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+export class EmailService {
+  private static transporter: nodemailer.Transporter;
+
+  /**
+   * Initialise le service d'email
+   */
+  static initialize() {
+    this.transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: false, // true pour 465, false pour les autres ports
+      auth: {
+        user: config.smtpUser,
+        pass: config.smtpPass,
+      },
+    });
+  }
+
+  /**
+   * Envoie un email
+   */
+  static async sendEmail(options: EmailOptions): Promise<void> {
+    try {
+      if (!this.transporter) {
+        this.initialize();
+      }
+
+      await this.transporter.sendMail({
+        from: config.emailFrom,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      });
+
+      console.log(`Email envoyé à ${options.to}: ${options.subject}`);
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de l\'email:', error);
+      throw new Error('Impossible d\'envoyer l\'email');
+    }
+  }
+
+  /**
+   * Envoie un email de vérification
+   */
+  static async sendVerificationEmail(
+    email: string,
+    token: string,
+    firstName: string
+  ): Promise<void> {
+    const verificationUrl = `${config.frontendUrl}/verify-email?token=${token}`;
+
+    const html = `
+      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">Vérifiez votre adresse email</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Merci de vous être inscrit ! Veuillez cliquer sur le lien ci-dessous pour vérifier votre adresse email :</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${verificationUrl}" 
+             style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Vérifier mon email
+          </a>
+        </div>
+        <p>Si vous n'arrivez pas à cliquer sur le bouton, copiez et collez cette URL dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+        <p>Ce lien expire dans 24 heures.</p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.
+        </p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject: 'Vérifiez votre adresse email',
+      html,
+      text: `Bonjour ${firstName}, merci de vous être inscrit ! Veuillez vérifier votre email en visitant : ${verificationUrl}`,
+    });
+  }
+
+  /**
+   * Envoie un email de réinitialisation de mot de passe
+   */
+  static async sendPasswordResetEmail(
+    email: string,
+    token: string,
+    firstName: string
+  ): Promise<void> {
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
+
+    const html = `
+      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">Réinitialisation de votre mot de passe</h2>
+        <p>Bonjour ${firstName},</p>
+        <p>Vous avez demandé une réinitialisation de votre mot de passe. Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${resetUrl}" 
+             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Réinitialiser mon mot de passe
+          </a>
+        </div>
+        <p>Si vous n'arrivez pas à cliquer sur le bouton, copiez et collez cette URL dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+        <p>Ce lien expire dans 1 heure.</p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px;">
+          Si vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer cet email.
+        </p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: email,
+      subject: 'Réinitialisation de votre mot de passe',
+      html,
+      text: `Bonjour ${firstName}, vous avez demandé une réinitialisation de mot de passe. Visitez : ${resetUrl}`,
+    });
+  }
+
+  /**
+   * Méthode de développement pour simuler l'envoi d'emails
+   */
+  static async sendEmailStub(options: Pick<EmailOptions, 'to' | 'subject' | 'text'>): Promise<void> {
+    if (isDevelopment()) {
+      console.log('=== EMAIL STUB (Development) ===');
+      console.log(`To: ${options.to}`);
+      console.log(`Subject: ${options.subject}`);
+      console.log(`Content: ${options.text}`);
+      console.log('==============================');
+    } else {
+      // En production, on pourrait logger ou envoyer vraiment
+      console.log(`Email stub: ${options.subject} to ${options.to}`);
+    }
+  }
+}

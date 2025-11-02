@@ -67,10 +67,10 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
       data: {
         users,
         pagination: {
-          currentPage: page,
-          totalPages,
-          totalItems: total,
-          itemsPerPage: limit,
+          page,
+          pages: totalPages,
+          total,
+          limit,
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1,
         },

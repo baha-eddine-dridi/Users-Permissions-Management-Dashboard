@@ -15,18 +15,45 @@ const UsersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Charger les utilisateurs
+  // États pour la recherche, tri et pagination
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Input séparé pour éviter les re-renders
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'firstName' | 'email'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [itemsPerPage] = useState(10);
+
+  // Charger les utilisateurs avec recherche, tri et pagination
   const loadUsers = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Chargement des utilisateurs...');
-      const response = await userApi.getUsers(1, 50);
-      setUsers(response.data.users);
-      console.log('✅ Utilisateurs chargés:', response.data.users.length);
+      console.log('🔄 Chargement des utilisateurs...', { page: currentPage, search: searchTerm, sortBy, sortOrder });
+      
+      const response = await userApi.getUsers(
+        currentPage,
+        itemsPerPage,
+        searchTerm,
+        sortBy,
+        sortOrder
+      );
+      
+      setUsers(response.data.users || []);
+      setTotalPages(response.data.pagination?.pages || 1);
+      setTotalUsers(response.data.pagination?.total || 0);
+      
+      console.log('✅ Utilisateurs chargés:', {
+        count: response.data.users?.length || 0,
+        total: response.data.pagination?.total || 0,
+        page: currentPage,
+        totalPages: response.data.pagination?.pages || 1
+      });
     } catch (err: any) {
       console.error('❌ Erreur lors du chargement des utilisateurs:', err);
       setError(err.response?.data?.message || 'Erreur lors du chargement des utilisateurs');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -43,9 +70,23 @@ const UsersPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadUsers();
     loadRoles();
   }, []);
+
+  // Debounce pour la recherche (attendre 500ms après la dernière saisie)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1); // Retour à la première page
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Recharger les utilisateurs quand les paramètres changent
+  useEffect(() => {
+    loadUsers();
+  }, [currentPage, searchTerm, sortBy, sortOrder]);
 
   // Supprimer un utilisateur
   const handleDeleteUser = async (userId: string) => {
@@ -102,6 +143,57 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  // Gestion de la recherche (avec debounce via searchInput)
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  };
+
+  // Gestion du tri
+  const handleSort = (field: 'createdAt' | 'firstName' | 'email') => {
+    if (sortBy === field) {
+      // Inverser l'ordre si on clique sur la même colonne
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Pagination
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Générer les numéros de pages à afficher
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage < maxPagesToShow - 1) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -145,16 +237,70 @@ const UsersPage: React.FC = () => {
         </div>
       )}
 
+      {/* Barre de recherche et filtres */}
+      <div className="bg-white rounded-lg shadow mb-4 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Rechercher par nom ou email..."
+                value={searchInput}
+                onChange={handleSearch}
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <svg
+                className="absolute left-3 top-3 h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <span className="font-medium">{totalUsers}</span>
+            <span>utilisateur{totalUsers > 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Utilisateur
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('firstName')}
+                >
+                  <div className="flex items-center gap-2">
+                    Utilisateur
+                    {sortBy === 'firstName' && (
+                      <span className="text-blue-500">
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('email')}
+                >
+                  <div className="flex items-center gap-2">
+                    Email
+                    {sortBy === 'email' && (
+                      <span className="text-blue-500">
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rôles
@@ -246,12 +392,90 @@ const UsersPage: React.FC = () => {
           </table>
         </div>
 
-        {users.length === 0 && (
+        {users.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Aucun utilisateur trouvé</p>
+            <p className="text-gray-500 text-lg">
+              {searchTerm ? `Aucun utilisateur trouvé pour "${searchTerm}"` : 'Aucun utilisateur trouvé'}
+            </p>
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white rounded-lg shadow mt-4 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Précédent
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Suivant
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Affichage de{' '}
+                  <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
+                  {' à '}
+                  <span className="font-medium">
+                    {Math.min(currentPage * itemsPerPage, totalUsers)}
+                  </span>
+                  {' sur '}
+                  <span className="font-medium">{totalUsers}</span>
+                  {' résultats'}
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Précédent</span>
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {getPageNumbers().map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageClick(page)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        page === currentPage
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Suivant</span>
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de création */}
       {showCreateModal && (
@@ -302,9 +526,52 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     roles: [] as string[]
   });
 
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+
+  // Validation côté client
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+
+    if (!formData.firstName.trim()) {
+      errors.firstName = 'Le prénom est requis';
+    } else if (formData.firstName.trim().length < 2) {
+      errors.firstName = 'Le prénom doit contenir au moins 2 caractères';
+    }
+
+    if (!formData.lastName.trim()) {
+      errors.lastName = 'Le nom est requis';
+    } else if (formData.lastName.trim().length < 2) {
+      errors.lastName = 'Le nom doit contenir au moins 2 caractères';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'L\'email est requis';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format d\'email invalide';
+    }
+
+    if (!formData.password) {
+      errors.password = 'Le mot de passe est requis';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      errors.password = 'Le mot de passe doit contenir une majuscule, une minuscule et un chiffre';
+    }
+
+    return errors;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(formData);
+    
+    // Valider le formulaire
+    const errors = validateForm();
+    setValidationErrors(errors);
+
+    // Si pas d'erreurs, envoyer
+    if (Object.keys(errors).length === 0) {
+      onCreate(formData);
+    }
   };
 
   return (
@@ -315,54 +582,99 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Prénom
+              Prénom <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              required
               value={formData.firstName}
-              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setFormData({...formData, firstName: e.target.value});
+                if (validationErrors.firstName) {
+                  setValidationErrors({...validationErrors, firstName: ''});
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                validationErrors.firstName 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
+            {validationErrors.firstName && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.firstName}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nom
+              Nom <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              required
               value={formData.lastName}
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setFormData({...formData, lastName: e.target.value});
+                if (validationErrors.lastName) {
+                  setValidationErrors({...validationErrors, lastName: ''});
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                validationErrors.lastName 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
+            {validationErrors.lastName && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.lastName}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
-              required
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setFormData({...formData, email: e.target.value});
+                if (validationErrors.email) {
+                  setValidationErrors({...validationErrors, email: ''});
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                validationErrors.email 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
+            {validationErrors.email && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
+              Mot de passe <span className="text-red-500">*</span>
+              <span className="text-xs text-gray-500 ml-2">(min. 8 caractères, 1 majuscule, 1 chiffre)</span>
             </label>
             <input
               type="password"
-              required
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setFormData({...formData, password: e.target.value});
+                if (validationErrors.password) {
+                  setValidationErrors({...validationErrors, password: ''});
+                }
+              }}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                validationErrors.password 
+                  ? 'border-red-500 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
+            {validationErrors.password && (
+              <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+            )}
           </div>
 
           <div>
